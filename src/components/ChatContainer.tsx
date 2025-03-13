@@ -4,28 +4,31 @@ import Message from "./Message";
 import MessageProps from "../interfaces/MessageProps";
 import supabase from "../client/supabaseClient";
 
-export default function ChatContainer() {
+const ChatContainer = () => {
   const [messages, setMessages] = useState<MessageProps[]>([]);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const channelRef = useRef<any>(null);
 
   // Function to subscribe to messages from Supabase
   const listenForMessages = () => {
-    // Subscribe to messages on the 'Messages' table in Supabase
     const channel = supabase
-      .channel('messages') // Use channel method for real-time subscriptions
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Messages' }, (payload) => {
-        console.log('Payload: ', payload);
-        
-        const incomingMessage: MessageProps = {
-          text: payload.new.message,
-          sender: payload.new.sender,
-          timestamp: new Date().toLocaleTimeString(),
-          avatar: "https://randomuser.me/api/portraits/women/2.jpg"
-        };
+      .channel("messages")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "Messages" },
+        (payload) => {
+          console.log("Payload: ", payload);
 
-        setMessages((prev) => [...prev, incomingMessage]);
-      })
+          const incomingMessage: MessageProps = {
+            text: payload.new.message,
+            sender: "other",
+            timestamp: new Date().toLocaleTimeString(),
+            avatar: "https://randomuser.me/api/portraits/women/2.jpg",
+          };
+
+          setMessages((prev) => [...prev, incomingMessage]);
+        }
+      )
       .subscribe();
 
     // Store the channel reference for cleanup on unmount
@@ -35,7 +38,6 @@ export default function ChatContainer() {
   useEffect(() => {
     listenForMessages();
 
-    // Cleanup the subscription when the component unmounts
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
@@ -44,15 +46,35 @@ export default function ChatContainer() {
   }, []);
 
   // Function to handle sending a new message
-  const handleSendMessage = (message: string) => {
+  const handleSendMessage = (message: string, recipientName: string) => {
+    const senderName = "user"; // Set the sender name
     const newMessage: MessageProps = {
       text: message,
-      sender: "user",
+      sender: senderName,
       timestamp: new Date().toLocaleTimeString(),
       avatar: "https://randomuser.me/api/portraits/men/1.jpg",
     };
 
-    setMessages((prev) => [...prev, newMessage]);
+    fetch("http://localhost:5405/message", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: senderName,
+        recipient: recipientName,
+        message: message,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Message sent:", data);
+      })
+      .catch((error) => {
+        console.error("Error sending message:", error);
+      });
+
+      setMessages((prev) => [...prev, newMessage]);
   };
 
   // Scroll to the bottom of the chat when messages change
@@ -76,7 +98,13 @@ export default function ChatContainer() {
         <div ref={messagesEndRef} />
       </div>
 
-      <InputMessageForm onMessageSubmitted={handleSendMessage} />
+      <InputMessageForm
+        onMessageSubmitted={(message) =>
+          handleSendMessage(message, "recipientName")
+        }
+      />
     </div>
   );
-}
+};
+
+export default ChatContainer;
