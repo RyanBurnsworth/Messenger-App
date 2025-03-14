@@ -1,24 +1,19 @@
-import MessageProps from "../interfaces/MessageProps";
+import MessageProps from "../props/MessageProps";
 
 export default function Message({
   text,
-  sender,
+  isSender,
+  senderName,
   timestamp,
   avatar,
 }: MessageProps) {
   return (
-    <div
-      className={`flex flex-col ${
-        sender === "user" ? "items-end" : "items-start"
-      }`}
-    >
+    <div className={`flex flex-col ${isSender ? "items-end" : "items-start"}`}>
       <span className="text-xs text-gray-500 mb-1">{timestamp}</span>
 
       <div
         className={`flex items-center gap-2 p-3 max-w-xs rounded-lg shadow-md ${
-          sender === "user"
-            ? "bg-fuchsia-500 text-white"
-            : "bg-gray-300 text-black"
+          isSender ? "bg-fuchsia-500 text-white" : "bg-gray-300 text-black"
         }`}
       >
         <img
@@ -28,7 +23,7 @@ export default function Message({
         />
 
         <div>
-          <strong>{sender}: </strong>
+          <strong>{senderName}: </strong>
           <span>{text}</span>
         </div>
       </div>
